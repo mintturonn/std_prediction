@@ -9,8 +9,17 @@ state_num <- length(unique(dat_f$state_2))
 age_string <- c(rep("15-24",state_num), rep("25-34",state_num), rep("35-44", state_num), rep("45-54",state_num), rep("55+",state_num))
 
 dat_f %>%
-  select(index_year, state_2, NAME, age_c , den_test_ct, num_test_ct, den_test_gc, num_test_gc,  cases_gc, cases_gc, cases_ct, cases_ct, population_ct, population_gc) %>%
+  rowwise() %>%
+  mutate(pr_ct = num_test_ct/den_test_ct,
+         pr_gc = num_test_gc / den_test_gc,
+         ll_ct = ifelse( is.na(num_test_ct) | is.na(den_test_ct), NA, binom.test(num_test_ct, den_test_ct)$conf.int[1]),
+         ul_ct = ifelse( is.na(num_test_ct) | is.na(den_test_ct), NA, binom.test(num_test_ct, den_test_ct)$conf.int[2]),
+         ll_gc = ifelse(is.na(num_test_gc) | is.na(den_test_gc), NA, binom.test(num_test_gc, den_test_gc)$conf.int[1]),
+         ul_gc = ifelse( is.na(num_test_gc) | is.na(den_test_gc),  NA, binom.test(num_test_gc, den_test_gc)$conf.int[2])) %>%
+  select(index_year, state_2, NAME, age_c , den_test_ct, num_test_ct, den_test_gc, num_test_gc,  cases_gc, cases_gc, cases_ct, cases_ct, population_ct, population_gc,
+         pr_ct, pr_gc, ll_ct, ll_gc, ul_ct, ul_gc) %>%
   arrange(index_year, age_c, state_2) -> fig_dat_f
+  
 
 dat_m %>%
   select(index_year, state_2, NAME, age_c , den_test_ct, num_test_ct, den_test_gc, num_test_gc,  cases_gc, cases_gc, cases_ct, cases_ct, population_ct, population_gc) %>%
@@ -88,16 +97,12 @@ clb_gc <- cbind( as.data.frame(summary(fit_ct, pars = "gc", probs = c(0.025, 0.5
                  sex = rep(c("F", "M"), each = 5) )
 colnames(clb_gc) <- make.names(colnames(clb_gc)) # to remove % in the col names
 
-df_fit %>%
-  select(starts_with("gc_st[1,"))
 
 clb_gc %>%
   filter(sex=="F") %>%
   ggplot() +
   geom_pointrange( aes(x = age, y = X50., ymin=  X2.5.,  ymax=X97.5.), color="orange") +
-  geom_pointrange(data =ct_data2, aes(x = age, y = CTp, ymin=CTp-1.96*CTse,  ymax=CTp+1.96*CTse), color="maroon", 
-                  shape=21, alpha=0.2) +
-  labs(x = "Age", y = "CT prevalence per capita") + theme_light() + mytheme2  +ylim(c(0, 0.06)) -> p0
+  labs(x = "Age", y = "GC prevalence per capita") + theme_light() + mytheme2  +ylim(c(0, NA)) -> p0
 
 ggsave(filename = here("figs/calib-gc-prev-1yr-2.png"),
        plot = p0,
@@ -137,24 +142,28 @@ dev.off()
 ####### CT
 ## women
 clb_diag_ct <- cbind( as.data.frame(summary(fit_ct, pars = "d_ct_f", probs = c(0.025, 0.5, 0.975))$summary) , 
-                      age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, data = fig_dat_f$cases_ct/fig_dat_f$population_ct,
+                      age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, 
+                      data = fig_dat_f$cases_ct/fig_dat_f$population_ct, data_ll=NA, data_ul=NA,
                       infection = "chlamydia", type="diagnoses")
 colnames(clb_diag_ct) <- make.names(colnames(clb_diag_ct)) # to remove % in the col names
 
 clb_diag_gc <- cbind( as.data.frame(summary(fit_ct, pars = "d_gc_f", probs = c(0.025, 0.5, 0.975))$summary) , 
-                   age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, data = fig_dat_f$cases_gc/fig_dat_f$population_gc,
+                   age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, 
+                   data = fig_dat_f$cases_gc/fig_dat_f$population_gc,  data_ll=NA, data_ul=NA,
                    infection = "gonorrhea", type="diagnoses")
 colnames(clb_diag_gc) <- make.names(colnames(clb_diag_gc)) # to remove % in the col names
 
 ## positivity
 ## women
 clb_posit_ct <- cbind( as.data.frame(summary(fit_ct, pars = "q_ct_f", probs = c(0.025, 0.5, 0.975))$summary) , 
-                       age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, data = fig_dat_f$num_test_ct/fig_dat_f$den_test_ct,
+                       age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, 
+                       data = fig_dat_f$pr_ct, data_ll=fig_dat_f$ll_ct, data_ul=fig_dat_f$ul_ct,
                        infection = "chlamydia", type="positivity")
 colnames(clb_posit_ct) <- make.names(colnames(clb_posit_ct)) # to remove % in the col names
 
 clb_posit_gc <- cbind( as.data.frame(summary(fit_ct, pars = "q_gc_f", probs = c(0.025, 0.5, 0.975))$summary) , 
-                       age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, data = fig_dat_f$num_test_gc/fig_dat_f$den_test_gc,
+                       age = fig_dat_f$age_c, t= fig_dat_f$index_year, state = fig_dat_f$state_2, state2 = fig_dat_f$NAME, 
+                       data = fig_dat_f$pr_gc, data_ll=fig_dat_f$ll_gc, data_ul=fig_dat_f$ul_gc,
                        infection = "gonorrhea", type="positivity")
 colnames(clb_posit_gc) <- make.names(colnames(clb_posit_gc)) # to remove % in the col names
 
@@ -162,13 +171,16 @@ colnames(clb_posit_gc) <- make.names(colnames(clb_posit_gc)) # to remove % in th
 ## women
 clb_pr_ct <- cbind( as.data.frame(summary(fit_ct, pars = "p_ct_f", probs = c(0.025, 0.5, 0.975))$summary) , 
                     age = rep(c("15-24", "25-34", "35-44", "45-54", "55+"), each=52),  t= fig_dat_f$index_year,
-                    state = rep(unique(fig_dat_f$state_2),5), state2 = fig_dat_f$NAME,  data=NA, 
+                    state = rep(unique(fig_dat_f$state_2),5), state2 = fig_dat_f$NAME,  
+                    data=NA,   data_ll=NA, data_ul=NA,
                     infection = "chlamydia", type="prevalence")
 colnames(clb_pr_ct) <- make.names(colnames(clb_pr_ct)) # to remove % in the col names
 
 clb_pr_gc <- cbind( as.data.frame(summary(fit_ct, pars = "p_gc_f", probs = c(0.025, 0.5, 0.975))$summary) , 
                     age = rep(c("15-24", "25-34", "35-44", "45-54", "55+"), each=52),   t= fig_dat_f$index_year,
-                    state = rep(unique(fig_dat_f$state_2),5), state2 = fig_dat_f$NAME,  data=NA, infection = "gonorrhea", type="prevalence")
+                    state = rep(unique(fig_dat_f$state_2),5), state2 = fig_dat_f$NAME,  
+                    data=NA,   data_ll=NA, data_ul=NA,
+                    infection = "gonorrhea", type="prevalence")
 colnames(clb_pr_gc) <- make.names(colnames(clb_pr_gc)) # to remove % in the col names
 
 
@@ -179,15 +191,17 @@ rbind(clb_diag_ct, clb_posit_ct, clb_pr_ct) %>%
   #          state!="NH" & state!="HI" & state!="NE" & state!="ID"  & state!="ND" & state!="SD" & state!="WY") %>%
   ggplot() +
   geom_vline(xintercept = 0, color = "black") + 
-  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type),  size = 0.3) +
-  geom_point(aes(y=reorder(state2, X50.), x = data), color="black",  size = 2, shape=1) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type), 
+                  size = 0.4) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = data, xmin=data_ll, xmax=data_ul),
+                  color="black", shape=1,  alpha=0.4) +
   facet_grid(~age+type) + xlab("Estimate per capita") + mytheme4  + ylab("")  -> p2
 
 ggsave(filename = here("figs/calib-st-ct-diagn-1yr-A.png"),
        plot = p2,
        device = png(),
        scale = 1, 
-       width = 25,
+       width = 30,
        height = 25, 
        units = "cm",
        dpi = 300)
@@ -197,12 +211,12 @@ dev.off()
 rbind(clb_diag_ct, clb_posit_ct, clb_pr_ct) %>%
   filter(age !="15-24" & age !="25-34") %>%
   filter(state!="HI" & state!="PR" & state!="ND" & state!="SD" & state!="ME" & state!="VT" & state!="NH" & state!="CT" ) %>%
-  # filter(state!="ME" & state!="PR" & state!="VT" & state!="NH" & state!="RI" & state!="DE" & state!="CT" &
-  #          state!="NH" & state!="HI" & state!="NE" & state!="ID"  & state!="ND" & state!="SD" & state!="WY") %>%
   ggplot() +
   geom_vline(xintercept = 0, color = "black") + 
-  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type),  size = 0.3) +
-  geom_point(aes(y=reorder(state2, X50.), x = data), color="black",  size = 2, shape=1) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type), 
+                  size = 0.4) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = data, xmin=data_ll, xmax=data_ul),
+                  color="black", shape=1,  alpha=0.4) +
   facet_grid(~age+type) + xlab("Estimate per capita") + mytheme4  + ylab("")  -> p2
 
 ggsave(filename = here("figs/calib-st-ct-diagn-1yr-B.png"),
@@ -224,15 +238,17 @@ rbind(clb_diag_gc, clb_posit_gc, clb_pr_gc) %>%
   #          state!="NH" & state!="HI" & state!="NE" & state!="ID"  & state!="ND" & state!="SD" & state!="WY") %>%
   ggplot() +
   geom_vline(xintercept = 0, color = "black") + 
-  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type),  size = 0.3) +
-  geom_point(aes(y=reorder(state2, X50.), x = data), color="black",  size = 2, shape=1) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type), 
+                  size = 0.4) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = data, xmin=data_ll, xmax=data_ul),
+                  color="black", shape=1,  alpha=0.4) +
   facet_grid(~age+type) + xlab("Estimate per capita") + mytheme4  + ylab("")  -> p2
 
 ggsave(filename = here("figs/calib-st-gc-diagn-1yr-2-A.png"),
        plot = p2,
        device = png(),
        scale = 1, 
-       width = 25,
+       width = 30,
        height = 25, 
        units = "cm",
        dpi = 300)
@@ -242,12 +258,12 @@ dev.off()
 rbind(clb_diag_gc, clb_posit_gc, clb_pr_gc) %>%
   filter(age !="15-24" & age !="25-34") %>%
   filter(state!="HI" & state!="PR" & state!="ND" & state!="SD" & state!="ME" & state!="VT" & state!="NH" & state!="CT" ) %>%
-  # filter(state!="ME" & state!="PR" & state!="VT" & state!="NH" & state!="RI" & state!="DE" & state!="CT" &
-  #          state!="NH" & state!="HI" & state!="NE" & state!="ID"  & state!="ND" & state!="SD" & state!="WY") %>%
   ggplot() +
   geom_vline(xintercept = 0, color = "black") + 
-  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type),  size = 0.3) +
-  geom_point(aes(y=reorder(state2, X50.), x = data), color="black",  size = 2, shape=1) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5., color=type), 
+                  size = 0.4) +
+  geom_pointrange(aes(y=reorder(state2, X50.), x = data, xmin=data_ll, xmax=data_ul),
+                  color="black", shape=1,  alpha=0.4) +
   facet_grid(~age+type) + xlab("Estimate per capita") + mytheme4  + ylab("")  -> p2
 
 ggsave(filename = here("figs/calib-st-gc-diagn-1yr-2-B.png"),
@@ -308,6 +324,7 @@ rbind(clb_testcov) %>%
   # filter(state!="ME" & state!="PR" & state!="VT" & state!="NH" & state!="RI" & state!="DE" & state!="CT" &
   #          state!="NH" & state!="HI" & state!="NE" & state!="ID"  & state!="ND" & state!="SD" & state!="WY") %>%
   ggplot() +
+  geom_vline(xintercept = 0, color = "black") + 
   geom_pointrange(aes(y=reorder(state2, X50.), x = X50., xmin = X2.5., xmax = X97.5.),  size = 0.2, color="darkmagenta") +
   facet_wrap(~age, ncol=5) + xlab("Test coverage") + mytheme4  + ylab("") 
 
