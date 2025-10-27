@@ -20,7 +20,8 @@ rstan_options(auto_write = TRUE)
 ################################
 source(here("data/ct_data.R"))
 
-source(here("code/read_claims_data_restricted.R"))
+# source(here("code/read_claims_data_restricted.R"))
+source(here("code/read_claims_data_restricted_averaged.R"))
 
 yrs <- 1 #4
 ages <- 5
