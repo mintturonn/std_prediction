@@ -124,36 +124,36 @@ fit_main <- stan(file = "model_code/mainanalysis_state_model.stan",
                chains = 5); #, init = "0"
 
 df_fit <- as.data.frame(fit_main)
-
-
-pars <- c("clear_ct", "clear_gc", "prsympt_ct", "prsympt_gc", "test_sympt_ct", "test_sympt_gc")
-pars2 <- c("test_asympt_ctgc")
-pars3 <- c("pr_det_ct_f")
-pars4 <- c("test_asympt_RR")
-pars5 <- c("dur_ct")
-pars6 <- c("dur_gc")
-
-pars7 <- c("test_asympt_RR")
-
-pars8 <- c("test_inf_RR")
-
-
-as.data.frame(fit_main, pars = pars) -> test
-as.data.frame(fit_main, pars = pars2) -> test2
-as.data.frame(fit_main, pars = pars3) -> test3
-
-as.data.frame(fit_main, pars = pars4) -> test4
-as.data.frame(fit_main, pars = pars5) -> test5
-as.data.frame(fit_main, pars = pars6) -> test6
-
-as.data.frame(fit_main, pars = pars7) -> test7
-
-as.data.frame(fit_main, pars = pars8) -> test8
-
-pr_detection <-(test$prsympt_ct*test$test_sympt_ct+(1-test$prsympt_ct)*test2$`test_asympt_ctgc[1,1]`)/(test$clear_ct+test$prsympt_ct*test$test_sympt_ct+(1-test$prsympt_ct)*test2$`test_asympt_ctgc[1,1]`)
-
-
-mcmc_trace(as.matrix(fit_main), pars = c("gc[1]", "ct[1]")) #
+# 
+# 
+# pars <- c("clear_ct", "clear_gc", "prsympt_ct", "prsympt_gc", "test_sympt_ct", "test_sympt_gc")
+# pars2 <- c("test_asympt_ctgc")
+# pars3 <- c("pr_det_ct_f")
+# pars4 <- c("test_asympt_RR")
+# pars5 <- c("dur_ct")
+# pars6 <- c("dur_gc")
+# 
+# pars7 <- c("test_asympt_RR")
+# 
+# pars8 <- c("test_inf_RR")
+# 
+# 
+# as.data.frame(fit_main, pars = pars) -> test
+# as.data.frame(fit_main, pars = pars2) -> test2
+# as.data.frame(fit_main, pars = pars3) -> test3
+# 
+# as.data.frame(fit_main, pars = pars4) -> test4
+# as.data.frame(fit_main, pars = pars5) -> test5
+# as.data.frame(fit_main, pars = pars6) -> test6
+# 
+# as.data.frame(fit_main, pars = pars7) -> test7
+# 
+# as.data.frame(fit_main, pars = pars8) -> test8
+# 
+# pr_detection <-(test$prsympt_ct*test$test_sympt_ct+(1-test$prsympt_ct)*test2$`test_asympt_ctgc[1,1]`)/(test$clear_ct+test$prsympt_ct*test$test_sympt_ct+(1-test$prsympt_ct)*test2$`test_asympt_ctgc[1,1]`)
+# 
+# 
+# mcmc_trace(as.matrix(fit_main), pars = c("gc[1]", "ct[1]")) #
 
 
 
