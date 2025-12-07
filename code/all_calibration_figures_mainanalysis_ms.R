@@ -80,9 +80,9 @@ ggplot() +
   scale_x_continuous( breaks = seq_along(unique(clb_ct$age)), labels = unique(clb_ct$age)) +
   scale_color_manual( name = "Source", values = c("Model" = "orange", "NHANES" = "maroon")) +
   labs(x = "Age", y = "CT prevalence per capita") +
-  theme_light() + mytheme2 + ylim(c(0, 0.06)) -> p0
+  theme_light() + mytheme2 + ylim(c(0, 0.04)) -> p0
 
-ggsave(filename = here("figs/calib-ct-prev-1yr-2.png"),
+ggsave(filename = here("figs/calib-ct-prev-1yr-3.png"),
        plot = p0,
        device = png(),
        scale = 1, 
@@ -106,9 +106,9 @@ clb_gc %>%
   filter(sex=="F") %>%
   ggplot() +
   geom_pointrange( aes(x = age, y = X50., ymin=  X2.5.,  ymax=X97.5.), color="orange") +
-  labs(x = "Age", y = "GC prevalence per capita") + theme_light() + mytheme2  +ylim(c(0, 0.02)) -> p0
+  labs(x = "Age", y = "GC prevalence per capita") + theme_light() + mytheme2  +ylim(c(0, 0.01)) -> p0
 
-ggsave(filename = here("figs/calib-gc-prev-1yr-2.png"),
+ggsave(filename = here("figs/calib-gc-prev-1yr-3.png"),
        plot = p0,
        device = png(),
        scale = 1, 
