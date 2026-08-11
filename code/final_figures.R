@@ -318,14 +318,18 @@ plot_dat_ct %>%
 ggsave(
   filename = file.path(here("figs/figure-1.eps")),
   plot = p1,
-  width = 10, height = 11, units = "in", dpi = 100 )
+  device   = cairo_ps,
+  scale    = 1,
+  width = 10, height = 11, units = "in", dpi = 300 )
 
 dev.off()
 
 ggsave(
   filename = file.path(here("figs/figure-2.eps")),
   plot = p2,
-  width = 10, height = 20, units = "in", dpi = 100 )
+  device   = cairo_ps,
+  scale    = 1,
+  width = 10, height = 20, units = "in", dpi = 300 )
 
 dev.off()
 
@@ -400,14 +404,20 @@ plot_dat_gc %>%
 ggsave(
   filename = file.path(here("figs/figure-3.eps")),
   plot = p3,
-  width = 10, height = 11, units = "in", dpi = 100 )
+  device   = cairo_ps,
+  scale    = 1,
+  width = 10, height = 11, units = "in", dpi = 300 )
 
 dev.off()
+
+
 
 ggsave(
   filename = file.path(here("figs/figure-4.eps")),
   plot = p4,
-  width = 10, height = 20, units = "in", dpi = 100 )
+  device   = cairo_ps,
+  scale    = 1,
+  width = 10, height = 20, units = "in", dpi = 300 )
 
 dev.off()
 
