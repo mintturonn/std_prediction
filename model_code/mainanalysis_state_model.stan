@@ -112,7 +112,9 @@ parameters {
 transformed parameters {
 
   // NATIONAL
-  real<lower = 0, upper = 1> te[age_st] ;   
+  real<lower = 0> te_rate[age_st, state];  
+  real<lower = 0> te_count[age_st, state]; 
+  real<lower = 0, upper = 1> te[age_st];  
   real<lower = 0> ct[age_st];
   real<lower = 0> gc[age_st];
   real<lower = 0> test_inf_RR[age_st]; // RR of screening if infected vs not
@@ -121,7 +123,7 @@ transformed parameters {
   real<lower = 0> ct_st[age_st, state];
   real<lower = 0> gc_st[age_st, state];
   
-  real<lower = 0, upper = 1> test_asympt_ctgc[age_st, state] ;
+  real<lower = 0> test_asympt_ctgc[age_st, state] ;
   
   real<lower = 0, upper = 1> p_ct_f[age_st, state] ;
   real<lower = 0, upper = 1> p_gc_f[age_st, state] ;
@@ -171,8 +173,8 @@ transformed parameters {
     
      for (a in 1:age_st){
 
-     pr_det_ct_f[a,st] =  (prsympt_ct*test_sympt_ct+(1-prsympt_ct)*test_inf_RR[a]*test_asympt_ctgc[a,st])/(prsympt_ct*test_sympt_ct+(1-prsympt_ct)*test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_ct);
-     pr_det_gc_f[a,st] =  (prsympt_gc*test_sympt_gc+(1-prsympt_gc)*test_inf_RR[a]*test_asympt_ctgc[a,st])/(prsympt_gc*test_sympt_gc+(1-prsympt_gc)*test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_gc);
+     pr_det_ct_f[a,st] =  prsympt_ct*(test_sympt_ct)/(test_sympt_ct+clear_ct) + (1-prsympt_ct)*(test_inf_RR[a]*test_asympt_ctgc[a,st])/(test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_ct);
+     pr_det_gc_f[a,st] =  prsympt_gc*(test_sympt_gc)/(test_sympt_gc+clear_gc) + (1-prsympt_gc)*(test_inf_RR[a]*test_asympt_ctgc[a,st])/(test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_gc);
 
     }
  }
@@ -185,13 +187,13 @@ transformed parameters {
    d_gc_f[a,st]  = i_gc_f[a,st]*pr_det_gc_f[a,st]; 
   
    dur_ct[a,st] = (prsympt_ct/(test_sympt_ct+clear_ct))+(1-prsympt_ct)/(test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_ct);
-   dur_gc[a,st] = (prsympt_ct/(test_sympt_ct+clear_ct))+(1-prsympt_ct)/(test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_ct);
+   dur_gc[a,st] = (prsympt_gc/(test_sympt_gc+clear_gc))+(1-prsympt_gc)/(test_inf_RR[a]*test_asympt_ctgc[a,st]+clear_gc);
 
    p_ct_f[a,st] = i_ct_f[a,st]*dur_ct[a,st];
    p_gc_f[a,st] = i_gc_f[a,st]*dur_gc[a,st];
    
-   num_test_ct_f[a,st] = (pop_f[a,st]-pop_f[a,st]*p_ct_f[a,st]) *test_asympt_ctgc[a,st] + d_ct_f[a,st] ;
-   num_test_gc_f[a,st] = (pop_f[a,st]-pop_f[a,st]*p_gc_f[a,st]) *test_asympt_ctgc[a,st] + d_gc_f[a,st];
+   num_test_ct_f[a,st] = pop_f[a,st]*((1-p_ct_f[a,st])*test_asympt_ctgc[a,st]+d_ct_f[a,st]);
+   num_test_gc_f[a,st] = pop_f[a,st]*((1-p_gc_f[a,st])*test_asympt_ctgc[a,st]+d_gc_f[a,st]);
 
    q_ct_f[a,st]  = pop_f[a,st]*d_ct_f[a,st]/num_test_ct_f[a,st];
    q_gc_f[a,st]  = pop_f[a,st]*d_gc_f[a,st]/num_test_gc_f[a,st];
@@ -200,7 +202,7 @@ transformed parameters {
 }
   
   // NATIONAL
- //  monthly rate of testing
+  // annual testing-event rates and probability tested at least once
   // prevalence at national level
 
  for (a in 1:age_st){
@@ -208,14 +210,16 @@ transformed parameters {
 
       ct_st[a,st]  = p_ct_f[a,st]*pop_f[a,st];
       gc_st[a,st]  = p_gc_f[a,st]*pop_f[a,st];
-
+      
+      te_rate[a, st]  =   (1 - p_ct_f[a,st]) * test_asympt_ctgc[a,st] + d_ct_f[a,st];
+      te_count[a,st]  = pop_f[a,st] * (1 - exp(-te_rate[a, st]));
    }
       ct[a]  = sum(ct_st[a,])/sum(pop_f[a,]);
       gc[a]  = sum(gc_st[a,])/sum(pop_f[a,]);
 }
 
    for (a in 1:age_st){
-    te[a]  =  sum(num_test_ct_f[a,]) /sum(pop_f[a,]) ;
+     te[a] = sum(te_count[a,]) / sum(pop_f[a,]);
     }
 
    //  print(RR_m);
@@ -264,11 +268,11 @@ model {
    target += 0.1*binomial_lpmf(CT[j,1] | CTN[j,1], ct[j]); // + binomial_lpmf(CTm[j,i] | CTNm[j,i], ct[2,j,i]);
     }
     
- for (a in 1:age_st) {
-    if ( 5*gc[a]  > ct[a])
-      // Penalty: large negative value if 5* GC prevalence in any age group is larger than CT prevalence
-      target += -100;
-  }
+ // for (a in 1:age_st) {
+ //    if ( 5*gc[a]  > ct[a])
+ //      // Penalty: large negative value if 5* GC prevalence in any age group is larger than CT prevalence
+ //      target += -100;
+ //  }
   
 //  for (st in 1:state) {
 //      if (pr_det_ct_f[1,st]  < 0.25)
@@ -336,17 +340,37 @@ model {
 
   generated quantities {
  //  
-  real<lower = 0> diag_ct[age_st];
-  real<lower = 0> diag_gc[age_st];
+  real<lower = 0> diag_ct_rate[age_st];
+  real<lower = 0> diag_gc_rate[age_st];
   real<lower = 0> num_test_ct[state]; 
   real<lower = 0> num_test_gc[state]; 
-
- // 
+  real<lower = 0> check_ct[age_st, state];
+  real<lower = 0> check_gc[age_st, state];
+  
+  real diag_ct_count;
+  real diag_gc_count;
+  real population_total;
+  
+ // these should all be 1
   for (a in 1:age_st){
-    diag_ct[a]  = sum(d_ct_f[a,]); 
-    diag_gc[a]  = sum(d_gc_f[a,]);
+    
+  diag_ct_count = 0;
+  diag_gc_count = 0;
+  population_total = 0;
+  
+      for (st in 1:state){
+       check_ct[a,st] = pr_det_ct_f[a,st] + clear_ct * dur_ct[a,st];
+       check_gc[a,st] = pr_det_gc_f[a,st] + clear_gc * dur_gc[a,st];
+       
+      diag_ct_count += pop_f[a,st] * d_ct_f[a,st];
+      diag_gc_count += pop_f[a,st] * d_gc_f[a,st];
+      population_total += pop_f[a,st];
+      }
+      
+  diag_ct_rate[a] = diag_ct_count / population_total;
+  diag_gc_rate[a] =  diag_gc_count / population_total;
   }
-
+  
   for (st in 1:state){
     num_test_ct[st] =  sum(num_test_ct_f[,st]);
     num_test_gc[st] =  sum(num_test_gc_f[,st]);

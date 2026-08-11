@@ -21,9 +21,6 @@ prepare_df <- function(df, prefix){
 inc_long <- prepare_df(clb_i_ct, "inc")
 prev_long <- prepare_df(clb_pr_ct, "prev")
 
-# inc_long <- prepare_df(clb_i_gc, "inc")
-# prev_long <- prepare_df(clb_pr_gc, "prev")
-
 inc_wide <- inc_long %>% pivot_wider(names_from = colname, values_from = estimate)
 prev_wide <- prev_long %>% pivot_wider(names_from = colname, values_from = estimate)
 
@@ -38,5 +35,24 @@ final <- inc_wide %>%
   )
 
  write.csv(final, file = here("out/ct_tab.csv"), row.names = FALSE)
-#  write.csv(final, file = here("out/gc_tab.csv"), row.names = FALSE)
+
+######
+ 
+ inc_long <- prepare_df(clb_i_gc, "inc")
+ prev_long <- prepare_df(clb_pr_gc, "prev")
+ 
+ inc_wide <- inc_long %>% pivot_wider(names_from = colname, values_from = estimate)
+ prev_wide <- prev_long %>% pivot_wider(names_from = colname, values_from = estimate)
+ 
+ inc_cols <- paste0("inc_", age_order)
+ prev_cols <- paste0("prev_", age_order)
+ 
+ final <- inc_wide %>%
+   full_join(prev_wide, by = "state2") %>%
+   select(state2,
+          all_of(inc_cols[inc_cols %in% names(.)]),
+          all_of(prev_cols[prev_cols %in% names(.)])
+   )
+ 
+ write.csv(final, file = here("out/gc_tab.csv"), row.names = FALSE)
 

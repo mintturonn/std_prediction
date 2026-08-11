@@ -43,11 +43,12 @@ read.csv("/Users/minttu/restricted_files/gc_year_sex_age.csv") %>%
 
 ct_year_age_sex_nat %>%
     filter(Gender=="F") %>%
+  mutate(age_c = factor(age_c, levels=c("15-24", "25-34", "35-44", "45-54", ">=55" ))) %>%
      ggplot()+
      geom_point(aes(x = index_year, y = positivity_ct, color = age_c), shape = 2) +
      geom_line(aes(x = index_year, y = positivity_ct, color = age_c)) + ggtitle("Chlamydia") +
-     ylim(c(0, NA)) + theme_bw() + ylab("Positivity per person tested") + 
-    labs(color = NULL) + xlab("Year") + ylim(c(0,0.15)) -> p00
+      theme_bw() + ylab("Positivity (proportion)") + 
+    labs(color = NULL) + xlab("Year") + ylim(c(0,0.12)) -> p00
 
 ggsave(filename = here("figs/calib-S1-A.png"),
        plot = p00,
@@ -63,11 +64,12 @@ dev.off()
 
 gc_year_age_sex_nat %>%
   filter(Gender=="F") %>%
+  mutate(age_c = factor(age_c, levels=c("15-24", "25-34", "35-44", "45-54", ">=55" ))) %>%
   ggplot()+
   geom_point(aes(x = index_year, y = positivity_gc, color = age_c), shape = 2) +
   geom_line(aes(x = index_year, y = positivity_gc, color = age_c))  + ggtitle("Gonorrhea") +
-  ylim(c(0, NA)) + theme_bw() + ylab("Positivity per person tested") + 
-  labs(color = NULL) + xlab("Year") + ylim(c(0,0.15)) -> p01
+   theme_bw() + ylab("Positivity (proportion)") + 
+  labs(color = NULL) + xlab("Year") + ylim(c(0,0.03)) -> p01
 
 ggsave(filename = here("figs/calib-S1-B.png"),
        plot = p01,
